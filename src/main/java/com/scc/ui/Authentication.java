@@ -2,6 +2,7 @@ package com.scc.ui;
 
 import com.scc.dao.UsersDao;
 import com.scc.model.users;
+import java.util.List;
 import java.util.Scanner;
 
 public class Authentication {
@@ -95,10 +96,10 @@ public class Authentication {
                 runAdminDashboard(user, sc, usersDao);
                 break;
             case "OWNER":
-                runOwnerDashboard(user, sc, usersDao);
+                runOwnerDashboard(user, sc);
                 break;
             case "TENANT":
-                runTenantDashboard(user, sc, usersDao);
+                runTenantDashboard(user, sc);
                 break;
             default:
                 System.out.println("-> Error: Unknown user role assigned.");
@@ -109,16 +110,70 @@ public class Authentication {
         boolean active = true;
         while (active) {
             String choice = Dashboard.showAdminDashboard(user, sc);
-            if (choice.equals("4")) {
-                System.out.println("-> Logging out from Admin Dashboard...");
-                active = false;
-            } else {
-                System.out.println("-> Feature under development.");
+
+            switch (choice) {
+                case "1":
+                    Dashboard.displayUsersTable("ALL SYSTEM USERS", usersDao.getAllUsers());
+                    break;
+                case "2":
+                    Dashboard.displayUsersTable("PENDING REGISTRATIONS", usersDao.getPendingUsers());
+                    break;
+                case "3":
+                    handleApproveUser(sc, usersDao);
+                    break;
+                case "4":
+                    System.out.println("-> Logging out from Admin Dashboard...");
+                    active = false;
+                    break;
+                default:
+                    System.out.println("Invalid option! Please choose between [1] and [4].");
             }
         }
     }
 
-    private static void runOwnerDashboard(users user, Scanner sc, UsersDao usersDao) {
+    private static void handleApproveUser(Scanner sc, UsersDao usersDao) {
+        List<users> pendingUsers = usersDao.getPendingUsers();
+        Dashboard.displayUsersTable("PENDING REGISTRATIONS FOR APPROVAL", pendingUsers);
+
+        if (pendingUsers.isEmpty()) {
+            return;
+        }
+
+        try {
+            System.out.print("\nEnter User ID to approve (or enter 0 to cancel): ");
+            int targetId = Integer.parseInt(sc.nextLine());
+
+            if (targetId == 0) {
+                System.out.println("-> Approval action cancelled.");
+                return;
+            }
+
+            boolean isPending = false;
+            for (users u : pendingUsers) {
+                if (u.user_id() == targetId) {
+                    isPending = true;
+                    break;
+                }
+            }
+
+            if (!isPending) {
+                System.out.println("-> Error: User ID " + targetId + " is not in the pending list.");
+                return;
+            }
+
+            boolean success = usersDao.approveUser(targetId);
+            if (success) {
+                System.out.println("-> Success: User account ID " + targetId + " status updated to 'APPROVED'.");
+            } else {
+                System.out.println("-> Error updating user status in database.");
+            }
+
+        } catch (NumberFormatException e) {
+            System.out.println("-> Error: Invalid input! Please enter a valid numerical User ID.");
+        }
+    }
+
+    private static void runOwnerDashboard(users user, Scanner sc) {
         boolean active = true;
         while (active) {
             String choice = Dashboard.showOwnerDashboard(user, sc);
@@ -131,7 +186,7 @@ public class Authentication {
         }
     }
 
-    private static void runTenantDashboard(users user, Scanner sc, UsersDao usersDao) {
+    private static void runTenantDashboard(users user, Scanner sc) {
         boolean active = true;
         while (active) {
             String choice = Dashboard.showTenantDashboard(user, sc);
