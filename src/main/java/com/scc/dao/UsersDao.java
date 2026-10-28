@@ -56,7 +56,7 @@ public class UsersDao {
         return null;
     }
 
-    public List<users> getAllUsers() { //[cite: 9]
+    public List<users> getAllUsers() {
         List<users> allUsers = new ArrayList<>();
         String sql = "SELECT * FROM users";
 
@@ -80,7 +80,7 @@ public class UsersDao {
         return allUsers;
     }
 
-    public List<users> getPendingUsers() { //[cite: 9]
+    public List<users> getPendingUsers() {
         List<users> pendingList = new ArrayList<>();
         String sql = "SELECT * FROM users WHERE status = 'PENDING'";
 
@@ -104,7 +104,7 @@ public class UsersDao {
         return pendingList;
     }
 
-    public boolean approveUser(int userId) { //[cite: 9, 11]
+    public boolean approveUser(int userId) {
         String sql = "UPDATE users SET status = 'APPROVED' WHERE user_id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -115,6 +115,24 @@ public class UsersDao {
             return rowsAffected > 0;
         } catch (SQLException e) {
             System.err.println("Error approving user: " + e.getMessage());
+            return false;
+        }
+    }
+
+    public boolean updateUserRoleAndStatus(int userId, String newRole, String newStatus) {
+        String sql = "UPDATE users SET roles = ?, status = ? WHERE user_id = ?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, newRole != null ? newRole.toUpperCase() : null);
+            pstmt.setString(2, newStatus != null ? newStatus.toUpperCase() : null);
+            pstmt.setInt(3, userId);
+
+            int rowsAffected = pstmt.executeUpdate();
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            System.err.println("Error updating user role and status: " + e.getMessage());
             return false;
         }
     }
